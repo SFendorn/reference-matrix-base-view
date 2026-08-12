@@ -171,7 +171,7 @@ class MatrixBaseView extends BasesView {
           linkedName === filePath ||
           linkedName?.endsWith(fileBaseName)
         ) {
-          matches.push(this.SanitizeLine(line.trim()));
+          matches.push(this.SanitizeWikiLine(line.trim()));
         }
       }
 
@@ -188,7 +188,7 @@ class MatrixBaseView extends BasesView {
     return [...new Set(matches)];
   }
 
-  private SanitizeLine(line: string): string {
+  private SanitizeWikiLine(line: string): string {
       const wikiLinkPattern = /\[\[([^|\]]+)\]\]/g;
       const wikiLinkPatternAlias = /\[\[[^|\]]+\|([^|\]]+)\]\]/g;
       return line.replaceAll(wikiLinkPattern, '$1').replaceAll(wikiLinkPatternAlias, '$1').replace(/^-\s*/, "");
