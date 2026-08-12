@@ -153,8 +153,8 @@ class MatrixBaseView extends BasesView {
     return notes.sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  private getReferencesInContent(content: string, targetFile: TFile): ReferenceMatch[] {
-    const matches: ReferenceMatch[] = [];
+  private getReferencesInContent(content: string, targetFile: TFile): string[] {
+    const matches: string[] = [];
     const lines = content.split('\n');
     const fileBaseName = targetFile.basename;
     const filePath = targetFile.path;
