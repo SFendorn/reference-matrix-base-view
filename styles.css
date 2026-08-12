@@ -2,30 +2,27 @@
 
    DOM contract (see src/ui/MatrixBaseReactView.tsx):
 
-     ul.reference-matrix                  [--rm-columns: <n>]
-       li.reference-matrix-header
-         span.reference-matrix-corner
-         ul.reference-matrix-columns
-           li.reference-matrix-column
-             a.reference-matrix-column-title    column header (base note)
-       li.reference-matrix-row
-         a.reference-matrix-row-title           row header (time axis note)
-         ul.reference-matrix-columns
-           li.reference-matrix-cell             [grid-column: <n>]
-             ul.reference-matrix-matches
-               li.reference-matrix-match        the matching lines
+     div.reference-matrix
+       div.reference-matrix-header
+         div.reference-matrix-corner
+         div.reference-matrix-column
+           a.reference-matrix-column-title       column header (base note)
+       div.reference-matrix-row
+         a.reference-matrix-row-title            row header (time axis note)
+         div.reference-matrix-slot[.is-linked]   one per column, always
+           div.reference-matrix-cell             only where there is data
+             div.reference-matrix-match          the matching lines
 
-   Alignment: the header and every row are separate grids that share one
-   *fully explicit* template — `<row header> repeat(--rm-columns, <cell>)` plus a
-   flexible filler. Because no track is content-sized, every grid resolves to
-   identical widths, so column N is at the same x in all rows. The intermediate
-   ul.reference-matrix-columns is `display: contents`, which lets the cells act
-   as grid items of their row while keeping the nested list structure. Each cell
-   names its own track via an inline `grid-column`, so a row leaves holes where
-   it has no data — this is the sparseness.
+   Alignment: flex rows whose children all have a fixed flex-basis — the row
+   header, then one slot per column. Every row emits a slot for every column
+   (empty ones included), so identical bases in identical order put column N at
+   the same x in every row. No grid, no per-cell placement, no column count
+   needed in CSS.
 
-   (Deliberately not subgrid: repeating an explicit template works in every
-   Chromium that Obsidian has ever shipped on.)
+   Sparseness: an empty slot renders nothing at all, except where it sits
+   between two filled cells of its column — there it carries a centered vertical
+   line (`.is-linked`, decided in the component). The line therefore starts at a
+   column's first reference and stops at its last.
 
    Nothing draws a frame around the matrix itself, so no data renders nothing. */
 
@@ -42,10 +39,7 @@
 	--rm-pad: var(--size-4-2, 8px);
 	--rm-border-color: var(--background-modifier-border, rgba(128, 128, 128, 0.3));
 	--rm-border: 1px solid var(--rm-border-color);
-
-	list-style: none;
-	margin: 0;
-	padding: 0;
+	--rm-line-width: 2px;
 
 	display: flex;
 	flex-direction: column;
@@ -61,20 +55,31 @@
 
 .reference-matrix-header,
 .reference-matrix-row {
-	display: grid;
-	grid-template-columns:
-		var(--rm-row-header-width)
-		repeat(var(--rm-columns, 1), var(--rm-cell-width))
-		minmax(0, 1fr); /* filler: absorbs slack when the axis is narrower than the view */
-	column-gap: var(--rm-gap);
+	display: flex;
+	flex-direction: row;
 	align-items: stretch;
-	width: 100%;
-	list-style: none;
+	column-gap: var(--rm-gap);
 }
 
-/* Dissolve the wrapper so its <li> children become items of the row grid. */
-.reference-matrix-columns {
-	display: contents;
+.reference-matrix-corner,
+.reference-matrix-row-title,
+.reference-matrix-column,
+.reference-matrix-slot {
+	/* Fixed basis, never grow or shrink — this is what aligns the columns. */
+	flex-grow: 0;
+	flex-shrink: 0;
+	box-sizing: border-box;
+	min-width: 0;
+}
+
+.reference-matrix-corner,
+.reference-matrix-row-title {
+	flex-basis: var(--rm-row-header-width);
+}
+
+.reference-matrix-column,
+.reference-matrix-slot {
+	flex-basis: var(--rm-cell-width);
 }
 
 /* ── Sticky headers ────────────────────────────────────────────────────── */
@@ -84,33 +89,31 @@
 	top: 0;
 	z-index: 3;
 
-	padding: var(--rm-pad) 0;
+	padding-block: var(--rm-pad);
 	background-color: var(--background-primary);
 	border-bottom: var(--rm-border);
 }
 
 .reference-matrix-corner,
 .reference-matrix-row-title {
-	grid-column: 1;
-
 	/* Pinned while the columns scroll horizontally underneath. */
 	position: sticky;
 	left: 0;
 	z-index: 1;
 
-	/* Opaque, and bled across the column gap so cells cannot peek through the
-	   gutter while scrolling. */
 	background-color: var(--background-primary);
-	margin-right: calc(-1 * var(--rm-gap));
-	padding-right: calc(var(--rm-pad) + var(--rm-gap));
 	border-right: var(--rm-border);
+
+	/* A copy of the box shifted into the column gutter, so connector lines and
+	   cells cannot peek through the gap while scrolling. Cheaper than a
+	   pseudo-element and it costs no layout width. */
+	box-shadow: var(--rm-gap) 0 0 var(--background-primary);
 }
 
 .reference-matrix-row-title {
 	display: flex;
 	align-items: flex-start;
-	padding-block: var(--rm-pad);
-	padding-left: var(--rm-pad);
+	padding: var(--rm-pad);
 
 	font-weight: var(--font-semibold, 600);
 	line-height: var(--line-height-tight, 1.3);
@@ -120,22 +123,24 @@
 .reference-matrix-column {
 	display: flex;
 	align-items: flex-end;
-	min-width: 0;
+	justify-content: center;
 	padding-inline: var(--rm-pad);
-	list-style: none;
 }
 
 .reference-matrix-column-title {
+	text-align: center;
 	font-weight: var(--font-semibold, 600);
 	font-size: var(--font-ui-small, 0.875em);
 	line-height: var(--line-height-tight, 1.3);
 	overflow-wrap: anywhere;
 }
 
-/* ── Rows and cells ───────────────────────────────────────────────────── */
+/* ── Rows, slots and cells ────────────────────────────────────────────── */
 
 .reference-matrix-row {
-	padding: var(--rm-pad) 0;
+	/* No vertical padding: slots must span the full row height or the connector
+	   lines would break at every row boundary. The breathing room lives on the
+	   cell instead. */
 	border-bottom: var(--rm-border);
 }
 
@@ -143,13 +148,30 @@
 	border-bottom: none;
 }
 
+.reference-matrix-slot {
+	display: flex;
+	align-items: stretch;
+}
+
+/* The connector: a centered vertical line filling the slot, bleeding 1px past
+   the bottom to cross the row separator so the column reads as continuous. */
+.reference-matrix-slot.is-linked::before {
+	content: "";
+	flex: 0 0 auto;
+	width: 0;
+	margin-inline: auto;
+	margin-bottom: -1px;
+	border-left: var(--rm-line-width) solid var(--rm-border-color);
+}
+
 .reference-matrix-cell {
-	/* grid-column comes from the component — this is the sparse placement. */
+	flex: 1 1 auto;
+	min-width: 0;
+	margin-block: var(--rm-pad);
+
 	display: flex;
 	flex-direction: column;
 	gap: var(--size-4-1, 4px);
-	min-width: 0;
-	list-style: none;
 
 	padding: var(--rm-pad);
 	border: var(--rm-border);
@@ -161,22 +183,9 @@
 	border-color: var(--background-modifier-border-hover, var(--interactive-accent));
 }
 
-/* ── Match lines ──────────────────────────────────────────────────────── */
-
-.reference-matrix-matches {
-	list-style: none;
-	margin: 0;
-	padding: 0;
-
-	display: flex;
-	flex-direction: column;
-	gap: var(--size-2-2, 4px);
-}
-
 .reference-matrix-match {
 	padding-left: var(--size-4-2, 8px);
 	border-left: 2px solid var(--rm-border-color);
-	list-style: none;
 
 	line-height: var(--line-height-tight, 1.3);
 	color: var(--text-muted);
@@ -187,7 +196,6 @@
 
 .reference-matrix:empty,
 .reference-matrix:not(:has(.reference-matrix-cell)),
-.reference-matrix-row:not(:has(.reference-matrix-cell)),
-.reference-matrix-matches:empty {
+.reference-matrix-row:not(:has(.reference-matrix-cell)) {
 	display: none;
 }
