@@ -1,13 +1,14 @@
 import React from 'react';
 import { MatrixCell, MatrixData } from '../types';
 
-const MatrixBaseReactView: React.FC<{ matrixData: MatrixData }> = (props) => {
+const MatrixBaseReactView: React.FC<{ matrixData: MatrixData, compact: boolean }> = (props) => {
     // Rows without any cell carry no data at all (not even a time axis file to
     // label them with), so they never reach the DOM.
     const rows = props.matrixData.filter((row) => row.length > 0);
 
-    // The column axis is global: every base file referenced anywhere in the
-    // matrix gets exactly one column, in first-appearance order.
+    // The column axis is global and shared by both modes: every base file
+    // referenced anywhere in the matrix gets exactly one column, in
+    // first-appearance order.
     const columnOf = new Map<string, number>();
     const columns: MatrixCell['baseFile'][] = [];
     for (const row of rows) {
@@ -24,8 +25,65 @@ const MatrixBaseReactView: React.FC<{ matrixData: MatrixData }> = (props) => {
         return null;
     }
 
-    // Every row emits a slot for every column — that is what keeps the flex
-    // rows aligned, and it gives the connector lines somewhere to live.
+    // In compact mode a cell names its own time axis note, since there is no row
+    // header to carry that.
+    const renderCell = (cell: MatrixCell, withTitle: boolean) => (
+        <div className="reference-matrix-cell" title={cell.baseFile.basename}>
+            {withTitle && (
+                <a href={cell.timeAxisFile.path} data-href={cell.timeAxisFile.path} className="reference-matrix-cell-title internal-link" rel="noopener" target="_blank">{cell.timeAxisFile.basename}</a>
+            )}
+            {cell.matches.map((match) => (
+                <div className="reference-matrix-match" key={match}>{match}</div>
+            ))}
+        </div>
+    );
+
+    const header = (
+        <div className="reference-matrix-header">
+            {!props.compact && <div className="reference-matrix-corner" />}
+            {columns.map((baseFile) => (
+                <div className="reference-matrix-column" key={baseFile.path}>
+                    <a href={baseFile.path} data-href={baseFile.path} className="reference-matrix-column-title internal-link" rel="noopener" target="_blank">{baseFile.basename}</a>
+                </div>
+            ))}
+        </div>
+    );
+
+    // ── Compact: no row axis. Each column is one stack of its filled cells, in
+    // time axis order, with no empty slots to align against.
+    if (props.compact) {
+        const cellsOfColumn = columns.map(() => [] as MatrixCell[]);
+        for (const row of rows) {
+            for (const cell of row) {
+                cellsOfColumn[columnOf.get(cell.baseFile.path) ?? 0]?.push(cell);
+            }
+        }
+
+        return (
+            <div className="reference-matrix is-compact">
+                {header}
+                <div className="reference-matrix-row">
+                    {columns.map((baseFile, columnIndex) => (
+                        <div className="reference-matrix-slot" key={baseFile.path}>
+                            {/* A lead before every cell draws the line from under the
+                                column header and through each gap; the stack simply
+                                ends after the last cell. */}
+                            {(cellsOfColumn[columnIndex] ?? []).map((cell) => (
+                                <React.Fragment key={cell.timeAxisFile.path}>
+                                    <div className="reference-matrix-lead is-linked" />
+                                    {renderCell(cell, true)}
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    // ── Sparse: one row per time axis note. Every row emits a slot for every
+    // column — that is what keeps the flex rows aligned, and it gives the
+    // connector lines somewhere to live.
     const cellsByColumn = rows.map((row) => {
         const byColumn = new Map<number, MatrixCell>();
         for (const cell of row) {
@@ -47,14 +105,7 @@ const MatrixBaseReactView: React.FC<{ matrixData: MatrixData }> = (props) => {
 
     return (
         <div className="reference-matrix">
-            <div className="reference-matrix-header">
-                <div className="reference-matrix-corner" />
-                {columns.map((baseFile) => (
-                    <div className="reference-matrix-column" key={baseFile.path}>
-                        <a href={baseFile.path} data-href={baseFile.path} className="reference-matrix-column-title internal-link" rel="noopener" target="_blank">{baseFile.basename}</a>
-                    </div>
-                ))}
-            </div>
+            {header}
             {rows.map((row, rowIndex) => (
                 <div className="reference-matrix-row" key={row.first()?.timeAxisFile.path}>
                     <a href={row.first()?.timeAxisFile.path} data-href={row.first()?.timeAxisFile.path} className="reference-matrix-row-title internal-link" rel="noopener" target="_blank">{row.first()?.timeAxisFile.basename}</a>
@@ -73,13 +124,7 @@ const MatrixBaseReactView: React.FC<{ matrixData: MatrixData }> = (props) => {
                         return (
                             <div className="reference-matrix-slot" key={baseFile.path}>
                                 <div className={above ? 'reference-matrix-lead is-linked' : 'reference-matrix-lead'} />
-                                {cell && (
-                                    <div className="reference-matrix-cell" title={baseFile.basename}>
-                                        {cell.matches.map((match) => (
-                                            <div className="reference-matrix-match" key={match}>{match}</div>
-                                        ))}
-                                    </div>
-                                )}
+                                {cell && renderCell(cell, false)}
                                 <div className={below ? 'reference-matrix-trail is-linked' : 'reference-matrix-trail'} />
                             </div>
                         );

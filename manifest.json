@@ -2,7 +2,7 @@
 	"id": "reference-matrix-base",
 	"name": "Reference Matrix",
 	"version": "1.0.0",
-	"minAppVersion": "1.0.0",
+	"minAppVersion": "1.10.0",
 	"description": "Displays all references of the files in the base context in a configured folder (e.g. daily notes)",
 	"author": "SFendorn",
 	"isDesktopOnly": false

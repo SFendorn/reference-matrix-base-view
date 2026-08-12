@@ -1,4 +1,4 @@
-import { Plugin, MarkdownRenderer, MarkdownRenderChild } from 'obsidian';
+import { Plugin } from 'obsidian';
 import { App, BasesView, QueryController, PluginSettingTab, Setting, TFile, TFolder } from 'obsidian';
 import { Root, createRoot } from 'react-dom/client';
 import { createElement } from 'react';
@@ -8,6 +8,7 @@ import { hookUpLinks } from './util/PatchLinks';
 
 const DEFAULT_SETTINGS: PluginSettings = {
   timeAxisFolder: '',
+  compact: false
 };
 
 const VIEW_TYPE_REFERENCE_MATRIX = 'reference-matrix-view';
@@ -24,6 +25,16 @@ export default class ReferenceMatrixBasePlugin extends Plugin {
       icon: "lucide-grid-3x3",
       factory: (controller, containerEl) => {
         return new MatrixBaseView(controller, containerEl, this.settings)
+      },
+      options: (config) => {
+        return [
+          {
+            type: 'toggle',
+            displayName: 'Compact View',
+            key: 'compact',
+            default: false
+          }
+        ];
       }
     });
   }
@@ -99,8 +110,7 @@ class MatrixBaseView extends BasesView {
     var baseFiles: TFile[] = [];
     for (const group of this.data.groupedData) {
       for (const entry of group.entries) {
-        if (!timeAxisFiles.includes(entry.file))
-        {
+        if (!timeAxisFiles.includes(entry.file)) {
           baseFiles.push(entry.file);
         }
       }
@@ -118,7 +128,7 @@ class MatrixBaseView extends BasesView {
           this.app.renderContext
           matrixCells.push({
             timeAxisFile: timeAxisFile,
-            link: baseFile.path, 
+            link: baseFile.path,
             baseFile: baseFile,
             matches,
           });
@@ -127,7 +137,7 @@ class MatrixBaseView extends BasesView {
       matrixData.push(matrixCells);
     }
 
-    this.root?.render(createElement(MatrixBaseReactView, { matrixData: matrixData }));
+    this.root?.render(createElement(MatrixBaseReactView, { matrixData: matrixData, compact: Boolean(this.config.get('compact')) }));
     hookUpLinks(this.app, this, this.parentEl, this.app.vault.getRoot().path);
   }
 
@@ -189,8 +199,8 @@ class MatrixBaseView extends BasesView {
   }
 
   private SanitizeWikiLine(line: string): string {
-      const wikiLinkPattern = /\[\[([^|\]]+)\]\]/g;
-      const wikiLinkPatternAlias = /\[\[[^|\]]+\|([^|\]]+)\]\]/g;
-      return line.replaceAll(wikiLinkPattern, '$1').replaceAll(wikiLinkPatternAlias, '$1').replace(/^-\s*/, "");
+    const wikiLinkPattern = /\[\[([^|\]]+)\]\]/g;
+    const wikiLinkPatternAlias = /\[\[[^|\]]+\|([^|\]]+)\]\]/g;
+    return line.replaceAll(wikiLinkPattern, '$1').replaceAll(wikiLinkPatternAlias, '$1').replace(/^-\s*/, "");
   }
 }

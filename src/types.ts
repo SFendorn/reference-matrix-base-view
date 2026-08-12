@@ -2,6 +2,7 @@ import { TFile } from 'obsidian';
 
 export interface PluginSettings {
   timeAxisFolder: string;
+  compact: boolean;
 }
 
 export interface MatrixCell {
