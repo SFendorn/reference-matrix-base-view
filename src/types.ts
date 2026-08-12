@@ -4,17 +4,11 @@ export interface PluginSettings {
   timeAxisFolder: string;
 }
 
-export interface ReferenceMatch {
-  file: TFile;
-  sentence: string;
-  lineNumber: number;
-}
-
 export interface MatrixCell {
   timeAxisFile: TFile;
   link: string;
   baseFile: TFile;
-  matches: ReferenceMatch[];
+  matches: string[];
 }
 
 export type MatrixData = MatrixCell[][];

@@ -171,11 +171,7 @@ class MatrixBaseView extends BasesView {
           linkedName === filePath ||
           linkedName?.endsWith(fileBaseName)
         ) {
-          matches.push({
-            file: targetFile,
-            sentence: line.trim(),
-            lineNumber,
-          });
+          matches.push(this.SanitizeLine(line.trim()));
         }
       }
 
@@ -184,15 +180,17 @@ class MatrixBaseView extends BasesView {
       while ((match = mdLinkPattern.exec(line)) !== null) {
         const linkedPath = match[2];
         if (linkedPath?.includes(fileBaseName) || linkedPath === filePath) {
-          matches.push({
-            file: targetFile,
-            sentence: line.trim(),
-            lineNumber,
-          });
+          matches.push(line.trim());
         }
       }
     });
 
-    return matches;
+    return [...new Set(matches)];
+  }
+
+  private SanitizeLine(line: string): string {
+      const wikiLinkPattern = /\[\[([^|\]]+)\]\]/g;
+      const wikiLinkPatternAlias = /\[\[[^|\]]+\|([^|\]]+)\]\]/g;
+      return line.replaceAll(wikiLinkPattern, '$1').replaceAll(wikiLinkPatternAlias, '$1');
   }
 }

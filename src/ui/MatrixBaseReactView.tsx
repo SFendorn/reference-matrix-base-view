@@ -12,6 +12,11 @@ const MatrixBaseReactView: React.FC<{ matrixData: MatrixData }> = (props) => {
                         {row.map((item) => (
                             <li key={item.timeAxisFile.name + item.baseFile.name}>
                                 <a href={item.baseFile.path} data-href={item.baseFile.path} class="internal-link" rel="noopener" target="_blank">{item.baseFile.basename}</a>
+                                <ul>
+                                    {item.matches.map((match) => (
+                                        <div>{match}</div>
+                                    ))}
+                                </ul>
                             </li>
                         ))}
                     </ul>
