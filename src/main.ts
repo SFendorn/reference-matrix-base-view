@@ -191,6 +191,6 @@ class MatrixBaseView extends BasesView {
   private SanitizeLine(line: string): string {
       const wikiLinkPattern = /\[\[([^|\]]+)\]\]/g;
       const wikiLinkPatternAlias = /\[\[[^|\]]+\|([^|\]]+)\]\]/g;
-      return line.replaceAll(wikiLinkPattern, '$1').replaceAll(wikiLinkPatternAlias, '$1');
+      return line.replaceAll(wikiLinkPattern, '$1').replaceAll(wikiLinkPatternAlias, '$1').replace(/^-\s*/, "");
   }
 }
