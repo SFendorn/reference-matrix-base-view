@@ -34,15 +34,13 @@ const MatrixBaseReactView: React.FC<{ matrixData: MatrixData }> = (props) => {
         return byColumn;
     });
 
-    // A column's line spans its topmost filled cell to its bottommost one, so
-    // it stops instead of dangling past the last reference.
-    const firstFilled = columns.map(() => -1);
+    // A column's line starts under the column header and stops at the column's
+    // bottommost filled cell, so it never dangles past the last reference. Every
+    // column holds at least one cell by construction, so -1 here would mean "no
+    // items" and yields no line at all.
     const lastFilled = columns.map(() => -1);
     cellsByColumn.forEach((byColumn, rowIndex) => {
         for (const columnIndex of byColumn.keys()) {
-            if (firstFilled[columnIndex] === -1) {
-                firstFilled[columnIndex] = rowIndex;
-            }
             lastFilled[columnIndex] = rowIndex;
         }
     });
@@ -62,15 +60,19 @@ const MatrixBaseReactView: React.FC<{ matrixData: MatrixData }> = (props) => {
                     <a href={row.first()?.timeAxisFile.path} data-href={row.first()?.timeAxisFile.path} className="reference-matrix-row-title internal-link" rel="noopener" target="_blank">{row.first()?.timeAxisFile.basename}</a>
                     {columns.map((baseFile, columnIndex) => {
                         const cell = cellsByColumn[rowIndex]?.get(columnIndex);
+                        const last = lastFilled[columnIndex] ?? -1;
 
-                        // An empty slot only carries the line while it sits
-                        // between two filled cells of the same column.
-                        const linked = !cell
-                            && rowIndex > (firstFilled[columnIndex] ?? -1)
-                            && rowIndex < (lastFilled[columnIndex] ?? -1);
+                        // The line runs from under the column header down to the
+                        // column's last reference, so every slot above that row
+                        // gets a line where its cell is not: over the cell, under
+                        // it, or straight through when the slot is empty. The
+                        // last reference keeps only the half above it.
+                        const above = rowIndex <= last;
+                        const below = rowIndex < last;
 
                         return (
-                            <div className={linked ? 'reference-matrix-slot is-linked' : 'reference-matrix-slot'} key={baseFile.path}>
+                            <div className="reference-matrix-slot" key={baseFile.path}>
+                                <div className={above ? 'reference-matrix-lead is-linked' : 'reference-matrix-lead'} />
                                 {cell && (
                                     <div className="reference-matrix-cell" title={baseFile.basename}>
                                         {cell.matches.map((match) => (
@@ -78,6 +80,7 @@ const MatrixBaseReactView: React.FC<{ matrixData: MatrixData }> = (props) => {
                                         ))}
                                     </div>
                                 )}
+                                <div className={below ? 'reference-matrix-trail is-linked' : 'reference-matrix-trail'} />
                             </div>
                         );
                     })}
