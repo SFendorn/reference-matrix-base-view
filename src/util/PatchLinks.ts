@@ -1,6 +1,24 @@
-import { App, Component, Keymap, Menu } from "obsidian";
+import { App, Component, Keymap, Menu, TFile, Workspace, WorkspaceLeaf } from "obsidian";
 
-// from https://forum.obsidian.md/t/markdownrenderer-render-wikilinks-arent-clickable-in-live-preview/111255
+/* The handlers below reach for a few Obsidian internals that the public API does
+   not declare. Describing them as optional members keeps every call site
+   type-checked — and optional-chained — instead of casting through `any`. */
+
+interface WorkspaceInternals {
+	// The internal-link counterpart, Workspace.handleLinkContextMenu, is public.
+	handleExternalLinkContextMenu?(menu: Menu, url: string, leaf?: WorkspaceLeaf): void;
+}
+
+interface DragManager {
+	dragFile?(evt: DragEvent, file: TFile): unknown;
+	onDragStart?(evt: DragEvent, dragData: unknown): void;
+}
+
+interface AppInternals {
+	dragManager?: DragManager;
+}
+
+// adapted from https://forum.obsidian.md/t/markdownrenderer-render-wikilinks-arent-clickable-in-live-preview/111255
 export function hookUpLinks(
 	app: App,
 	component: Component,
@@ -51,6 +69,8 @@ export function hookUpLinks(
 		if (!anchor)
 			return;
 
+		const workspace: Workspace & WorkspaceInternals = app.workspace;
+
 		if (isInternalLink(anchor)) {
 			const linkText = getLinkText(anchor);
 			if (!linkText)
@@ -60,11 +80,11 @@ export function hookUpLinks(
 			evt.stopPropagation();
 
 			const menu = new Menu();
-			(app.workspace as any).handleLinkContextMenu?.(
+			workspace.handleLinkContextMenu(
 				menu,
 				linkText,
 				sourcePath,
-				app.workspace.getMostRecentLeaf()
+				workspace.getMostRecentLeaf() ?? undefined
 			);
 
 			menu.showAtMouseEvent(evt);
@@ -82,7 +102,7 @@ export function hookUpLinks(
 		evt.stopPropagation();
 
 		const menu = new Menu();
-		(app.workspace as any).handleExternalLinkContextMenu?.(menu, url, app.workspace.getMostRecentLeaf());
+		workspace.handleExternalLinkContextMenu?.(menu, url, workspace.getMostRecentLeaf() ?? undefined);
 		menu.showAtMouseEvent(evt);
 	});
 
@@ -95,13 +115,11 @@ export function hookUpLinks(
 		if (!file)
 			return;
 
-		const dragManager: any = (app as any).dragManager;
-		if (dragManager?.dragFile && dragManager?.onDragStart) {
-			const dragData = dragManager.dragFile(evt, file);
-
-			dragManager.onDragStart(evt, dragData);
+		const { dragManager }: App & AppInternals = app;
+		if (!dragManager?.dragFile || !dragManager.onDragStart)
 			return;
-		}
+
+		dragManager.onDragStart(evt, dragManager.dragFile(evt, file));
 	});
 }
 

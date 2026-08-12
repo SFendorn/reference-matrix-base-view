@@ -7,8 +7,7 @@ import { MatrixCell, PluginSettings, MatrixData } from './types';
 import { hookUpLinks } from './util/PatchLinks';
 
 const DEFAULT_SETTINGS: PluginSettings = {
-  timeAxisFolder: '',
-  compact: false
+  timeAxisFolder: ''
 };
 
 const VIEW_TYPE_REFERENCE_MATRIX = 'reference-matrix-view';
@@ -30,7 +29,7 @@ export default class ReferenceMatrixBasePlugin extends Plugin {
         return [
           {
             type: 'toggle',
-            displayName: 'Compact View',
+            displayName: 'Compact view',
             key: 'compact',
             default: false
           }
@@ -40,7 +39,9 @@ export default class ReferenceMatrixBasePlugin extends Plugin {
   }
 
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    // loadData() is untyped, so narrow it before merging over the defaults.
+    const saved = (await this.loadData()) as Partial<PluginSettings> | null;
+    this.settings = { ...DEFAULT_SETTINGS, ...saved };
   }
 
   async saveSettings() {
@@ -60,14 +61,15 @@ class ReferenceMatrixSettingTab extends PluginSettingTab {
     const { containerEl } = this;
 
     containerEl.empty();
-    containerEl.createEl('h2', { text: 'Reference Matrix Settings' });
 
+    // No heading: Obsidian already titles the tab with the plugin name, and
+    // there is only one section here.
     new Setting(containerEl)
-      .setName('Time Axis Folder')
+      .setName('Time axis folder')
       .setDesc('Select the folder whose notes will appear on the vertical axis')
       .addText((text) => {
         text
-          .setPlaceholder('e.g., Daily Notes')
+          .setPlaceholder('E.g., daily notes')
           .setValue(this.plugin.settings.timeAxisFolder)
           .onChange(async (value) => {
             this.plugin.settings.timeAxisFolder = value;
@@ -100,14 +102,19 @@ class MatrixBaseView extends BasesView {
   }
 
   // onDataUpdated is called by Obsidian whenever there is a configuration
-  // or data change in the vault which may affect your view.
-  async onDataUpdated() {
-    var matrixData: MatrixData = [];
+  // or data change in the vault which may affect your view. It is declared to
+  // return void, so the async work is kicked off rather than awaited here.
+  public onDataUpdated(): void {
+    void this.rebuild();
+  }
+
+  private async rebuild(): Promise<void> {
+    const matrixData: MatrixData = [];
     const timeAxisFiles = await this.getNotesFromFolder(
       this.settings.timeAxisFolder
     );
 
-    var baseFiles: TFile[] = [];
+    const baseFiles: TFile[] = [];
     for (const group of this.data.groupedData) {
       for (const entry of group.entries) {
         if (!timeAxisFiles.includes(entry.file)) {
@@ -119,13 +126,12 @@ class MatrixBaseView extends BasesView {
     // Build matrix
     for (const timeAxisFile of timeAxisFiles) {
       const content = await this.app.vault.read(timeAxisFile);
-      var matrixCells: MatrixCell[] = [];
+      const matrixCells: MatrixCell[] = [];
 
       for (const baseFile of baseFiles) {
         const matches = this.getReferencesInContent(content, baseFile);
 
         if (matches.length > 0) {
-          this.app.renderContext
           matrixCells.push({
             timeAxisFile: timeAxisFile,
             link: baseFile.path,
