@@ -3,7 +3,7 @@ import { App, BasesView, QueryController, PluginSettingTab, Setting, TFile, TFol
 import { Root, createRoot } from 'react-dom/client';
 import { createElement } from 'react';
 import MatrixBaseReactView from './ui/MatrixBaseReactView';
-import { MatrixCell, ReferenceMatch, PluginSettings, MatrixData } from './types';
+import { MatrixCell, PluginSettings, MatrixData } from './types';
 import { hookUpLinks } from './util/PatchLinks';
 
 const DEFAULT_SETTINGS: PluginSettings = {
@@ -13,7 +13,7 @@ const DEFAULT_SETTINGS: PluginSettings = {
 const VIEW_TYPE_REFERENCE_MATRIX = 'reference-matrix-view';
 
 export default class ReferenceMatrixBasePlugin extends Plugin {
-  settings: PluginSettings;
+  settings: PluginSettings = DEFAULT_SETTINGS;
 
   async onload() {
     await this.loadSettings();
