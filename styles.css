@@ -1,0 +1,146 @@
+/* Reference Matrix — sparse matrix rendering.
+
+   DOM contract (see src/ui/MatrixBaseReactView.tsx):
+
+     ul.reference-matrix              rows
+       li.reference-matrix-row
+         a.reference-matrix-row-title       row header (time axis note)
+         ul.reference-matrix-columns        cells present in this row
+           li.reference-matrix-cell
+             a.reference-matrix-column-title  column header (base note)
+             ul.reference-matrix-matches
+               li.reference-matrix-match      the matching lines
+
+   The matrix is sparse: every row only contains the cells that actually hold
+   data, and each cell carries its own column header. Nothing here draws a
+   frame around the matrix itself, so an empty result set renders as nothing. */
+
+.refernce-matrix-view-container {
+	height: 100%;
+	overflow: hidden;
+}
+
+.reference-matrix {
+	--rm-row-header-width: 12em;
+	--rm-cell-width: 16em;
+	--rm-gap: var(--size-4-2, 8px);
+	--rm-pad: var(--size-4-2, 8px);
+	--rm-border: 1px solid var(--background-modifier-border, rgba(128, 128, 128, 0.3));
+
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	height: 100%;
+	overflow: auto;
+
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+}
+
+/* ── Rows ──────────────────────────────────────────────────────────────── */
+
+.reference-matrix-row {
+	display: grid;
+	grid-template-columns: var(--rm-row-header-width) max-content;
+	gap: var(--rm-gap);
+	align-items: stretch;
+
+	/* Wider than the viewport when there are many columns, but never narrower,
+	   so the row separators span the full width. The scrollbar lives on
+	   .reference-matrix. */
+	width: max-content;
+	min-width: 100%;
+
+	padding: var(--rm-pad) 0;
+	border-bottom: var(--rm-border);
+}
+
+.reference-matrix-row:last-child {
+	border-bottom: none;
+}
+
+.reference-matrix-row-title {
+	/* Pinned while the columns scroll horizontally underneath. */
+	position: sticky;
+	left: 0;
+	z-index: 2;
+
+	display: flex;
+	align-items: flex-start;
+	padding: var(--rm-pad);
+	font-weight: var(--font-semibold, 600);
+	line-height: var(--line-height-tight, 1.3);
+	overflow-wrap: anywhere;
+
+	/* Opaque, otherwise cells show through while scrolling. */
+	background-color: var(--background-primary);
+}
+
+/* ── Cells (columns) ───────────────────────────────────────────────────── */
+
+.reference-matrix-columns {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+
+	display: flex;
+	flex-direction: row;
+	align-items: stretch;
+	gap: var(--rm-gap);
+}
+
+.reference-matrix-cell {
+	flex: 0 0 var(--rm-cell-width);
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-1, 4px);
+
+	padding: var(--rm-pad);
+	border: var(--rm-border);
+	border-radius: var(--radius-s, 4px);
+	background-color: var(--background-primary-alt, var(--background-secondary));
+	min-width: 0;
+}
+
+.reference-matrix-cell:hover {
+	border-color: var(--background-modifier-border-hover, var(--interactive-accent));
+}
+
+.reference-matrix-column-title {
+	font-weight: var(--font-semibold, 600);
+	font-size: var(--font-ui-small, 0.875em);
+	line-height: var(--line-height-tight, 1.3);
+	overflow-wrap: anywhere;
+}
+
+/* ── Match lines ───────────────────────────────────────────────────────── */
+
+.reference-matrix-matches {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-2-2, 4px);
+}
+
+.reference-matrix-match {
+	padding-left: var(--size-4-2, 8px);
+	border-left: 2px solid var(--background-modifier-border, rgba(128, 128, 128, 0.3));
+
+	font-size: var(--font-ui-smaller, 0.8em);
+	line-height: var(--line-height-tight, 1.3);
+	color: var(--text-muted);
+	overflow-wrap: anywhere;
+}
+
+/* ── Empty states: collapse instead of drawing empty boxes ─────────────── */
+
+.reference-matrix:empty,
+.reference-matrix:not(:has(.reference-matrix-cell)),
+.reference-matrix-row:not(:has(.reference-matrix-cell)),
+.reference-matrix-matches:empty {
+	display: none;
+}
