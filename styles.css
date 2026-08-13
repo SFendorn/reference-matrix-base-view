@@ -225,9 +225,6 @@
 }
 
 .reference-matrix-match {
-	padding-left: var(--size-4-2, 8px);
-	border-left: 2px solid var(--rm-border-color);
-
 	line-height: var(--line-height-tight, 1.3);
 	color: var(--text-muted);
 	overflow-wrap: anywhere;
