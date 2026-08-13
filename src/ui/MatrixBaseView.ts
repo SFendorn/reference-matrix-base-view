@@ -4,7 +4,7 @@ import { createElement } from 'react';
 import MatrixBaseReactView from './MatrixBaseReactView';
 import { VIEW_TYPE_REFERENCE_MATRIX } from '../types';
 import { buildMatrix } from '../matrix/buildMatrix';
-import { registerLinks } from '../util/RegisterLinks';
+import { registerLinks } from '../util/registerLinks';
 
 export class MatrixBaseView extends BasesView {
   readonly type = VIEW_TYPE_REFERENCE_MATRIX;
@@ -49,6 +49,8 @@ export class MatrixBaseView extends BasesView {
     this.root?.render(createElement(MatrixBaseReactView, {
       matrixData,
       compact: Boolean(this.config.get('compact')),
+      app: this.app,
+      component: this,
     }));
   }
 }

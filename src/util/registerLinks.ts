@@ -1,4 +1,4 @@
-import { App, Component, Keymap, Menu, TFile, Workspace, WorkspaceLeaf } from "obsidian";
+import { App, Component, Keymap, Menu, TFile, Workspace, WorkspaceLeaf, getLinkpath } from "obsidian";
 
 /* The handlers below reach for a few Obsidian internals that the public API does
    not declare. Describing them as optional members keeps every call site
@@ -18,12 +18,20 @@ interface AppInternals {
 	dragManager?: DragManager;
 }
 
+/**
+ * Links rendered inside a cell belong to the note that cell's lines came from,
+ * so resolve against the nearest data-source-path and fall back to the default.
+ */
+function sourcePathOf(anchor: HTMLAnchorElement, fallback: string): string {
+	return anchor.closest("[data-source-path]")?.getAttribute("data-source-path") ?? fallback;
+}
+
 // adapted from https://forum.obsidian.md/t/markdownrenderer-render-wikilinks-arent-clickable-in-live-preview/111255
 export function registerLinks(
 	app: App,
 	component: Component,
 	containerEl: HTMLElement,
-	sourcePath: string
+	defaultSourcePath: string
 ) {
     /*
 	component.registerDomEvent(containerEl, "mouseover", (evt: MouseEvent) => {
@@ -37,7 +45,7 @@ export function registerLinks(
 			hoverParent: { hoverPopover: null },
 			targetEl: data.anchor,
 			linktext: data.linkText,
-			sourcePath,
+			sourcePath: sourcePathOf(data.anchor, defaultSourcePath),
 		});
 	});
     */
@@ -50,7 +58,7 @@ export function registerLinks(
 			return;
 
 		evt.preventDefault();
-		void app.workspace.openLinkText(data.linkText, sourcePath, Keymap.isModEvent(evt));
+		void app.workspace.openLinkText(data.linkText, sourcePathOf(data.anchor, defaultSourcePath), Keymap.isModEvent(evt));
 	});
 
 	component.registerDomEvent(containerEl, "auxclick", (evt: MouseEvent) => {
@@ -61,7 +69,7 @@ export function registerLinks(
 			return;
 
 		evt.preventDefault();
-		void app.workspace.openLinkText(data.linkText, sourcePath, "tab");
+		void app.workspace.openLinkText(data.linkText, sourcePathOf(data.anchor, defaultSourcePath), "tab");
 	});
 
 	component.registerDomEvent(containerEl, "contextmenu", (evt: MouseEvent) => {
@@ -83,7 +91,7 @@ export function registerLinks(
 			workspace.handleLinkContextMenu(
 				menu,
 				linkText,
-				sourcePath,
+				sourcePathOf(anchor, defaultSourcePath),
 				workspace.getMostRecentLeaf() ?? undefined
 			);
 
@@ -111,7 +119,11 @@ export function registerLinks(
 		if (!data)
 			return;
 
-		const file = app.metadataCache.getFirstLinkpathDest(data.linkText, sourcePath);
+		// getLinkpath drops any #heading or ^block, which would not resolve.
+		const file = app.metadataCache.getFirstLinkpathDest(
+			getLinkpath(data.linkText),
+			sourcePathOf(data.anchor, defaultSourcePath)
+		);
 		if (!file)
 			return;
 
@@ -153,5 +165,6 @@ function isExternalLink(anchor: HTMLAnchorElement): boolean {
 }
 
 function getLinkText(anchor: HTMLAnchorElement): string | null {
-	return anchor.getAttribute("href");
+	// Rendered links keep the raw linktext in data-href; href is a fallback.
+	return anchor.getAttribute("data-href") ?? anchor.getAttribute("href");
 }

@@ -233,6 +233,42 @@
 	overflow-wrap: anywhere;
 }
 
+/* The muted body colour above must not flatten link colours, or an unresolved
+   link stops looking unresolved. */
+.reference-matrix-match a.internal-link {
+	color: var(--link-color);
+}
+
+.reference-matrix-match a.internal-link.is-unresolved {
+	color: var(--link-unresolved-color);
+	opacity: var(--link-unresolved-opacity);
+	filter: var(--link-unresolved-filter);
+}
+
+.reference-matrix-match a.external-link {
+	color: var(--link-external-color);
+}
+
+/* Obsidian renders each match line as markdown, so block-level output lands
+   inside the cell. Strip its outer spacing and pull lists in tight. */
+.reference-matrix-match > :first-child {
+	margin-top: 0;
+}
+
+.reference-matrix-match > :last-child {
+	margin-bottom: 0;
+}
+
+.reference-matrix-match p {
+	margin-block: 0;
+}
+
+.reference-matrix-match ul,
+.reference-matrix-match ol {
+	margin-block: 0;
+	padding-inline-start: var(--size-4-4, 16px);
+}
+
 /* ── Compact mode ─────────────────────────────────────────────────────── */
 
 /* No row axis, so nothing is pinned to the left and there is a single row whose
