@@ -1,7 +1,7 @@
 import { App, TFile } from 'obsidian';
-import { MatrixCell, MatrixData } from '../types';
+import { MatchLine, MatrixCell, MatrixData } from '../types';
 import { notesInFolder } from './collectNotes';
-import { findMatches } from './findMatches';
+import { referencedLines } from './referencedLines';
 
 /**
  * One row per note in the time axis folder, one cell per entry file it
@@ -25,20 +25,44 @@ export async function buildMatrix(
     }
   }
 
+  const targetPaths = new Set(baseFiles.keys());
   const rows: MatrixData = [];
+
   for (const timeAxisFile of timeAxisFiles) {
-    const content = await app.vault.read(timeAxisFile);
+    const lineNumbers = referencedLines(app.metadataCache, timeAxisFile, targetPaths);
+
+    // A note that references nothing needs no cell, and no read either.
+    if (lineNumbers.size === 0) {
+      rows.push({ timeAxisFile, cells: [] });
+      continue;
+    }
+
+    const lines = (await app.vault.cachedRead(timeAxisFile)).split('\n');
     const cells: MatrixCell[] = [];
 
-    for (const baseFile of baseFiles.values()) {
-      const matches = findMatches(content, baseFile);
-
+    // Driven by baseFiles so the column order follows the query, not the note.
+    for (const [path, baseFile] of baseFiles) {
+      const matches = matchesAt(lines, lineNumbers.get(path));
       if (matches.length > 0) {
         cells.push({ baseFile, matches });
       }
     }
+
     rows.push({ timeAxisFile, cells });
   }
 
   return rows;
+}
+
+/** Trimmed only so an indented line is not mistaken for a code block. */
+function matchesAt(lines: string[], lineNumbers: number[] | undefined): MatchLine[] {
+  const matches: MatchLine[] = [];
+
+  for (const line of lineNumbers ?? []) {
+    // The cache can be a beat behind the content it was built from.
+    const markdown = lines[line]?.trim();
+    if (markdown) matches.push({ line, markdown });
+  }
+
+  return matches;
 }

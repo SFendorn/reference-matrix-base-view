@@ -1,4 +1,4 @@
-import { BasesView, QueryController } from 'obsidian';
+import { BasesView, QueryController, debounce } from 'obsidian';
 import { Root, createRoot } from 'react-dom/client';
 import { createElement } from 'react';
 import MatrixBaseReactView from './MatrixBaseReactView';
@@ -12,6 +12,9 @@ export class MatrixBaseView extends BasesView {
   containerEl: HTMLElement;
   root: Root | undefined = undefined;
 
+  // Rebuilds are async and have two triggers, so only the newest may render.
+  private generation = 0;
+
   constructor(controller: QueryController, parentEl: HTMLElement) {
     super(controller);
     this.parentEl = parentEl;
@@ -22,10 +25,19 @@ export class MatrixBaseView extends BasesView {
     this.root = createRoot(this.containerEl);
     // Once only: registerDomEvent stacks listeners, and these delegate from parentEl.
     registerLinks(this.app, this, this.parentEl, this.app.vault.getRoot().path);
+
+    // The matrix is derived from the metadata cache, which Obsidian fills in
+    // after a note is indexed. Bases does not re-query for that, so an edited
+    // note would otherwise keep showing the cells it had at query time.
+    this.registerEvent(this.app.metadataCache.on('resolved', this.rebuildSoon));
   }
 
   public onunload(): void {
+    this.rebuildSoon.cancel();
+    // Retires anything in flight, so it cannot render into an unmounted root.
+    this.generation++;
     this.root?.unmount();
+    this.root = undefined;
   }
 
   // onDataUpdated is called by Obsidian whenever there is a configuration
@@ -35,22 +47,34 @@ export class MatrixBaseView extends BasesView {
     void this.rebuild();
   }
 
+  // A save resolves the cache a beat later and once per keystroke while typing.
+  private rebuildSoon = debounce(() => void this.rebuild(), 200, true);
+
   private async rebuild(): Promise<void> {
+    const generation = ++this.generation;
+
     const entryFiles = this.data.groupedData.flatMap((group) =>
       group.entries.map((entry) => entry.file)
     );
 
-    const matrixData = await buildMatrix(
-      this.app,
-      String(this.config.get('timeAxisFolder')),
-      entryFiles
-    );
+    try {
+      const matrixData = await buildMatrix(
+        this.app,
+        String(this.config.get('timeAxisFolder')),
+        entryFiles
+      );
 
-    this.root?.render(createElement(MatrixBaseReactView, {
-      matrixData,
-      compact: Boolean(this.config.get('compact')),
-      app: this.app,
-      component: this,
-    }));
+      // Superseded by a newer rebuild, or the view is gone.
+      if (generation !== this.generation) return;
+
+      this.root?.render(createElement(MatrixBaseReactView, {
+        matrixData,
+        compact: Boolean(this.config.get('compact')),
+        app: this.app,
+        component: this,
+      }));
+    } catch (error) {
+      console.error('Reference Matrix: could not build the matrix', error);
+    }
   }
 }
