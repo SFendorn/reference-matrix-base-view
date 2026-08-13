@@ -95,6 +95,8 @@ class MatrixBaseView extends BasesView {
 
   public onload(): void {
     this.root = createRoot(this.containerEl);
+    // Once only: registerDomEvent stacks listeners, and these delegate from parentEl.
+    hookUpLinks(this.app, this, this.parentEl, this.app.vault.getRoot().path);
   }
 
   public onunload(): void {
@@ -144,7 +146,6 @@ class MatrixBaseView extends BasesView {
     }
 
     this.root?.render(createElement(MatrixBaseReactView, { matrixData: matrixData, compact: Boolean(this.config.get('compact')) }));
-    hookUpLinks(this.app, this, this.parentEl, this.app.vault.getRoot().path);
   }
 
 
