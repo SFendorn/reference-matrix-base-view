@@ -3,7 +3,7 @@ import { Root, createRoot } from 'react-dom/client';
 import { createElement } from 'react';
 import MatrixBaseReactView from './MatrixBaseReactView';
 import { MatrixCell, MatrixData, VIEW_TYPE_REFERENCE_MATRIX } from '../types';
-import { hookUpLinks } from '../util/PatchLinks';
+import { registerLinks } from '../util/RegisterLinks';
 
 export class MatrixBaseView extends BasesView {
   readonly type = VIEW_TYPE_REFERENCE_MATRIX;
@@ -20,7 +20,7 @@ export class MatrixBaseView extends BasesView {
   public onload(): void {
     this.root = createRoot(this.containerEl);
     // Once only: registerDomEvent stacks listeners, and these delegate from parentEl.
-    hookUpLinks(this.app, this, this.parentEl, this.app.vault.getRoot().path);
+    registerLinks(this.app, this, this.parentEl, this.app.vault.getRoot().path);
   }
 
   public onunload(): void {

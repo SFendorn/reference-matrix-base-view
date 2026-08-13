@@ -19,7 +19,7 @@ interface AppInternals {
 }
 
 // adapted from https://forum.obsidian.md/t/markdownrenderer-render-wikilinks-arent-clickable-in-live-preview/111255
-export function hookUpLinks(
+export function registerLinks(
 	app: App,
 	component: Component,
 	containerEl: HTMLElement,
