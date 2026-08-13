@@ -21,7 +21,7 @@ export default class ReferenceMatrixBasePlugin extends Plugin {
 
     this.registerBasesView(VIEW_TYPE_REFERENCE_MATRIX, {
       name: "Reference Matrix",
-      icon: "lucide-grid-3x3",
+      icon: "kanban",
       factory: (controller, containerEl) => {
         return new MatrixBaseView(controller, containerEl, this.settings)
       },
