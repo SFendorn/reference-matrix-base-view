@@ -2,10 +2,8 @@ import { BasesView, QueryController, TFile, TFolder } from 'obsidian';
 import { Root, createRoot } from 'react-dom/client';
 import { createElement } from 'react';
 import MatrixBaseReactView from './MatrixBaseReactView';
-import { MatrixCell, MatrixData } from '../types';
+import { MatrixCell, MatrixData, VIEW_TYPE_REFERENCE_MATRIX } from '../types';
 import { hookUpLinks } from '../util/PatchLinks';
-
-export const VIEW_TYPE_REFERENCE_MATRIX = 'reference-matrix-view';
 
 export class MatrixBaseView extends BasesView {
   readonly type = VIEW_TYPE_REFERENCE_MATRIX;

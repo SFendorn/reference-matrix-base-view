@@ -1,5 +1,6 @@
 import { Plugin } from 'obsidian';
-import { MatrixBaseView, VIEW_TYPE_REFERENCE_MATRIX } from './ui/MatrixBaseView';
+import { MatrixBaseView } from './ui/MatrixBaseView';
+import { VIEW_TYPE_REFERENCE_MATRIX } from './types'
 
 export default class ReferenceMatrixBasePlugin extends Plugin {
   async onload() {
