@@ -128,21 +128,16 @@ class MatrixBaseView extends BasesView {
     // Build matrix
     for (const timeAxisFile of timeAxisFiles) {
       const content = await this.app.vault.read(timeAxisFile);
-      const matrixCells: MatrixCell[] = [];
+      const cells: MatrixCell[] = [];
 
       for (const baseFile of baseFiles) {
         const matches = this.getReferencesInContent(content, baseFile);
 
         if (matches.length > 0) {
-          matrixCells.push({
-            timeAxisFile: timeAxisFile,
-            link: baseFile.path,
-            baseFile: baseFile,
-            matches,
-          });
+          cells.push({ baseFile, matches });
         }
       }
-      matrixData.push(matrixCells);
+      matrixData.push({ timeAxisFile, cells });
     }
 
     this.root?.render(createElement(MatrixBaseReactView, { matrixData: matrixData, compact: Boolean(this.config.get('compact')) }));

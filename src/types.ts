@@ -5,10 +5,13 @@ export interface PluginSettings {
 }
 
 export interface MatrixCell {
-  timeAxisFile: TFile;
-  link: string;
   baseFile: TFile;
   matches: string[];
 }
 
-export type MatrixData = MatrixCell[][];
+export interface MatrixRow {
+  timeAxisFile: TFile;
+  cells: MatrixCell[];
+}
+
+export type MatrixData = MatrixRow[];
