@@ -73,11 +73,14 @@ class MatrixBaseView extends BasesView {
       String(this.config.get('timeAxisFolder'))
     );
 
-    const baseFiles: TFile[] = [];
+    // Keyed by path, so a file listed in several groups yields one column, and
+    // insertion order fixes the column order across every row.
+    const timeAxisPaths = new Set(timeAxisFiles.map((file) => file.path));
+    const baseFiles = new Map<string, TFile>();
     for (const group of this.data.groupedData) {
       for (const entry of group.entries) {
-        if (!timeAxisFiles.includes(entry.file)) {
-          baseFiles.push(entry.file);
+        if (!timeAxisPaths.has(entry.file.path)) {
+          baseFiles.set(entry.file.path, entry.file);
         }
       }
     }
@@ -87,7 +90,7 @@ class MatrixBaseView extends BasesView {
       const content = await this.app.vault.read(timeAxisFile);
       const cells: MatrixCell[] = [];
 
-      for (const baseFile of baseFiles) {
+      for (const baseFile of baseFiles.values()) {
         const matches = this.getReferencesInContent(content, baseFile);
 
         if (matches.length > 0) {
