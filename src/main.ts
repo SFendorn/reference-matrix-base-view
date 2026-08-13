@@ -17,7 +17,7 @@ export default class ReferenceMatrixBasePlugin extends Plugin {
       factory: (controller, containerEl) => {
         return new MatrixBaseView(controller, containerEl)
       },
-      options: (config) => {
+      options: () => {
         return [
           {
             type: 'folder',
