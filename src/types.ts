@@ -1,9 +1,5 @@
 import { TFile } from 'obsidian';
 
-export interface PluginSettings {
-  timeAxisFolder: string;
-}
-
 export interface MatrixCell {
   baseFile: TFile;
   matches: string[];

@@ -1,32 +1,31 @@
 import { Plugin } from 'obsidian';
-import { App, BasesView, QueryController, PluginSettingTab, Setting, TFile, TFolder } from 'obsidian';
+import { BasesView, QueryController, TFile, TFolder } from 'obsidian';
 import { Root, createRoot } from 'react-dom/client';
 import { createElement } from 'react';
 import MatrixBaseReactView from './ui/MatrixBaseReactView';
-import { MatrixCell, PluginSettings, MatrixData } from './types';
+import { MatrixCell, MatrixData } from './types';
 import { hookUpLinks } from './util/PatchLinks';
 
-const DEFAULT_SETTINGS: PluginSettings = {
-  timeAxisFolder: ''
-};
 
 const VIEW_TYPE_REFERENCE_MATRIX = 'reference-matrix-view';
 
 export default class ReferenceMatrixBasePlugin extends Plugin {
-  settings: PluginSettings = DEFAULT_SETTINGS;
-
   async onload() {
-    await this.loadSettings();
-    this.addSettingTab(new ReferenceMatrixSettingTab(this.app, this));
-
     this.registerBasesView(VIEW_TYPE_REFERENCE_MATRIX, {
       name: "Reference Matrix",
       icon: "kanban",
       factory: (controller, containerEl) => {
-        return new MatrixBaseView(controller, containerEl, this.settings)
+        return new MatrixBaseView(controller, containerEl)
       },
       options: (config) => {
         return [
+          {
+            type: 'folder',
+            displayName: 'Time axis folder',
+            key: 'timeAxisFolder',
+            default: '',
+            placeholder: 'daily notes'
+          },
           {
             type: 'toggle',
             displayName: 'Compact view',
@@ -37,46 +36,6 @@ export default class ReferenceMatrixBasePlugin extends Plugin {
       }
     });
   }
-
-  async loadSettings() {
-    // loadData() is untyped, so narrow it before merging over the defaults.
-    const saved = (await this.loadData()) as Partial<PluginSettings> | null;
-    this.settings = { ...DEFAULT_SETTINGS, ...saved };
-  }
-
-  async saveSettings() {
-    await this.saveData(this.settings);
-  }
-}
-
-class ReferenceMatrixSettingTab extends PluginSettingTab {
-  plugin: ReferenceMatrixBasePlugin;
-
-  constructor(app: App, plugin: ReferenceMatrixBasePlugin) {
-    super(app, plugin);
-    this.plugin = plugin;
-  }
-
-  display(): void {
-    const { containerEl } = this;
-
-    containerEl.empty();
-
-    // No heading: Obsidian already titles the tab with the plugin name, and
-    // there is only one section here.
-    new Setting(containerEl)
-      .setName('Time axis folder')
-      .setDesc('Select the folder whose notes will appear on the vertical axis')
-      .addText((text) => {
-        text
-          .setPlaceholder('E.g., daily notes')
-          .setValue(this.plugin.settings.timeAxisFolder)
-          .onChange(async (value) => {
-            this.plugin.settings.timeAxisFolder = value;
-            await this.plugin.saveSettings();
-          });
-      });
-  }
 }
 
 class MatrixBaseView extends BasesView {
@@ -84,13 +43,11 @@ class MatrixBaseView extends BasesView {
   parentEl: HTMLElement;
   containerEl: HTMLElement;
   root: Root | undefined = undefined;
-  settings: PluginSettings;
 
-  constructor(controller: QueryController, parentEl: HTMLElement, settings: PluginSettings) {
+  constructor(controller: QueryController, parentEl: HTMLElement) {
     super(controller);
     this.parentEl = parentEl;
     this.containerEl = parentEl.createDiv('refernce-matrix-view-container');
-    this.settings = settings;
   }
 
   public onload(): void {
@@ -113,7 +70,7 @@ class MatrixBaseView extends BasesView {
   private async rebuild(): Promise<void> {
     const matrixData: MatrixData = [];
     const timeAxisFiles = await this.getNotesFromFolder(
-      this.settings.timeAxisFolder
+      String(this.config.get('timeAxisFolder'))
     );
 
     const baseFiles: TFile[] = [];
