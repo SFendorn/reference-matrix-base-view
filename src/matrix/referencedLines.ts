@@ -21,8 +21,12 @@ export function referencedLines(
   const byTarget = new Map<string, Set<number>>();
 
   for (const ref of [...(cache.links ?? []), ...(cache.embeds ?? [])]) {
-    // getLinkpath drops any #heading or ^block, which would not resolve.
-    const dest = metadataCache.getFirstLinkpathDest(getLinkpath(ref.link), sourceFile.path);
+    // getLinkpath drops any #heading or ^block, which would not resolve. It
+    // leaves nothing at all for a same-note link like [[#Heading]].
+    const linkpath = getLinkpath(ref.link);
+    if (!linkpath) continue;
+
+    const dest = metadataCache.getFirstLinkpathDest(linkpath, sourceFile.path);
     if (!dest || !targetPaths.has(dest.path)) continue;
 
     const lines = byTarget.get(dest.path) ?? new Set<number>();
