@@ -1,13 +1,14 @@
 import React from 'react';
-import { MatrixCell, MatrixData, MatrixRow } from '../types';
+import type { TFile } from 'obsidian';
+import { MatrixCell, MatrixData } from '../types';
 
 interface ColumnEntry {
     cell: MatrixCell;
-    timeAxisFile: MatrixRow['timeAxisFile'];
+    timeAxisFile: TFile;
 }
 
 interface Column {
-    baseFile: MatrixCell['baseFile'];
+    baseFile: TFile;
     entryByRow: Map<number, ColumnEntry>;
     lastRow: number;
 }
@@ -36,94 +37,96 @@ function buildColumns(rows: MatrixData): Column[] {
     return columns;
 }
 
-const MatrixBaseReactView: React.FC<{ matrixData: MatrixData, compact: boolean }> = (props) => {
+const FileLink: React.FC<{ file: TFile, className: string }> = ({ file, className }) => (
+    <a
+        href={file.path}
+        data-href={file.path}
+        className={`${className} internal-link`}
+        rel="noopener"
+        target="_blank"
+    >
+        {file.basename}
+    </a>
+);
+
+// Invisible unless linked, in which case it *is* the connector line.
+const Line: React.FC<{ kind: 'lead' | 'trail', linked: boolean }> = ({ kind, linked }) => (
+    <div className={linked ? `reference-matrix-${kind} is-linked` : `reference-matrix-${kind}`} />
+);
+
+const Cell: React.FC<{ cell: MatrixCell, timeAxisFile?: TFile }> = ({ cell, timeAxisFile }) => (
+    <div className="reference-matrix-cell" title={cell.baseFile.basename}>
+        {timeAxisFile && <FileLink file={timeAxisFile} className="reference-matrix-cell-title" />}
+        {cell.matches.map((match) => (
+            <div className="reference-matrix-match" key={match}>{match}</div>
+        ))}
+    </div>
+);
+
+const Header: React.FC<{ columns: Column[], withCorner: boolean }> = ({ columns, withCorner }) => (
+    <div className="reference-matrix-header">
+        {withCorner && <div className="reference-matrix-corner" />}
+        {columns.map((column) => (
+            <div className="reference-matrix-column" key={column.baseFile.path}>
+                <FileLink file={column.baseFile} className="reference-matrix-column-title" />
+            </div>
+        ))}
+    </div>
+);
+
+/** One row per time axis note, every row emitting a slot per column. */
+const SparseMatrix: React.FC<{ rows: MatrixData, columns: Column[] }> = ({ rows, columns }) => (
+    <div className="reference-matrix">
+        <Header columns={columns} withCorner />
+        {rows.map((row, rowIndex) => (
+            <div className="reference-matrix-row" key={row.timeAxisFile.path}>
+                <FileLink file={row.timeAxisFile} className="reference-matrix-row-title" />
+                {columns.map((column) => {
+                    const entry = column.entryByRow.get(rowIndex);
+
+                    return (
+                        <div className="reference-matrix-slot" key={column.baseFile.path}>
+                            <Line kind="lead" linked={rowIndex <= column.lastRow} />
+                            {entry && <Cell cell={entry.cell} />}
+                            <Line kind="trail" linked={rowIndex < column.lastRow} />
+                        </div>
+                    );
+                })}
+            </div>
+        ))}
+    </div>
+);
+
+/** No row axis: each column is one stack, every cell naming its own note. */
+const CompactMatrix: React.FC<{ columns: Column[] }> = ({ columns }) => (
+    <div className="reference-matrix is-compact">
+        <Header columns={columns} withCorner={false} />
+        <div className="reference-matrix-row">
+            {columns.map((column) => (
+                <div className="reference-matrix-slot" key={column.baseFile.path}>
+                    {[...column.entryByRow.values()].map((entry) => (
+                        <React.Fragment key={entry.timeAxisFile.path}>
+                            <Line kind="lead" linked />
+                            <Cell cell={entry.cell} timeAxisFile={entry.timeAxisFile} />
+                        </React.Fragment>
+                    ))}
+                </div>
+            ))}
+        </div>
+    </div>
+);
+
+const MatrixBaseReactView: React.FC<{ matrixData: MatrixData, compact: boolean }> = ({ matrixData, compact }) => {
     // Rows without any cell have nothing to show, so they never reach the DOM.
-    const rows = props.matrixData.filter((row) => row.cells.length > 0);
+    const rows = matrixData.filter((row) => row.cells.length > 0);
     const columns = buildColumns(rows);
 
     // No data at all: render nothing rather than an empty frame.
-    if (columns.length === 0) {
-        return null;
-    }
+    if (columns.length === 0) return null;
 
-    // Compact mode has no row header, so a cell names its own time axis note.
-    const renderCell = (cell: MatrixCell, timeAxisFile?: MatrixRow['timeAxisFile']) => (
-        <div className="reference-matrix-cell" title={cell.baseFile.basename}>
-            {timeAxisFile && (
-                <a href={timeAxisFile.path} data-href={timeAxisFile.path} className="reference-matrix-cell-title internal-link" rel="noopener" target="_blank">{timeAxisFile.basename}</a>
-            )}
-            {cell.matches.map((match) => (
-                <div className="reference-matrix-match" key={match}>{match}</div>
-            ))}
-        </div>
-    );
-
-    const header = (
-        <div className="reference-matrix-header">
-            {!props.compact && <div className="reference-matrix-corner" />}
-            {columns.map((column) => (
-                <div className="reference-matrix-column" key={column.baseFile.path}>
-                    <a href={column.baseFile.path} data-href={column.baseFile.path} className="reference-matrix-column-title internal-link" rel="noopener" target="_blank">{column.baseFile.basename}</a>
-                </div>
-            ))}
-        </div>
-    );
-
-    // ── Compact: no row axis. Each column is one stack of its filled cells, in
-    // time axis order, with no empty slots to align against.
-    if (props.compact) {
-        return (
-            <div className="reference-matrix is-compact">
-                {header}
-                <div className="reference-matrix-row">
-                    {columns.map((column) => (
-                        <div className="reference-matrix-slot" key={column.baseFile.path}>
-                            {/* A lead before every cell draws the line from under the
-                                column header and through each gap; the stack simply
-                                ends after the last cell. */}
-                            {[...column.entryByRow.values()].map((entry) => (
-                                <React.Fragment key={entry.timeAxisFile.path}>
-                                    <div className="reference-matrix-lead is-linked" />
-                                    {renderCell(entry.cell, entry.timeAxisFile)}
-                                </React.Fragment>
-                            ))}
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
-    }
-
-    // ── Sparse: one row per time axis note. Every row emits a slot for every
-    // column — that is what keeps the flex rows aligned, and it gives the
-    // connector lines somewhere to live.
-    return (
-        <div className="reference-matrix">
-            {header}
-            {rows.map((row, rowIndex) => (
-                <div className="reference-matrix-row" key={row.timeAxisFile.path}>
-                    <a href={row.timeAxisFile.path} data-href={row.timeAxisFile.path} className="reference-matrix-row-title internal-link" rel="noopener" target="_blank">{row.timeAxisFile.basename}</a>
-                    {columns.map((column) => {
-                        const entry = column.entryByRow.get(rowIndex);
-
-                        // The line runs from under the column header down to the
-                        // column's last reference, so it shows wherever the cell is
-                        // not: above it, below it, or straight through an empty slot.
-                        const above = rowIndex <= column.lastRow;
-                        const below = rowIndex < column.lastRow;
-
-                        return (
-                            <div className="reference-matrix-slot" key={column.baseFile.path}>
-                                <div className={above ? 'reference-matrix-lead is-linked' : 'reference-matrix-lead'} />
-                                {entry && renderCell(entry.cell)}
-                                <div className={below ? 'reference-matrix-trail is-linked' : 'reference-matrix-trail'} />
-                            </div>
-                        );
-                    })}
-                </div>
-            ))}
-        </div>
-    );
+    return compact
+        ? <CompactMatrix columns={columns} />
+        : <SparseMatrix rows={rows} columns={columns} />;
 };
 
 export default MatrixBaseReactView;
