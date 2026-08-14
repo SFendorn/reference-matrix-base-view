@@ -1,5 +1,5 @@
 {
-  "name": "obsidian-reference-matrix",
+  "name": "reference-matrix-base-view",
   "version": "1.0.0",
   "description": "Displays all references of the files in the base context in a configured folder (e.g. daily notes)",
   "keywords": [
