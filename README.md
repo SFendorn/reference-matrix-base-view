@@ -1,6 +1,6 @@
 # Reference Matrix
 
-An Obsidian [Bases](https://help.obsidian.md/bases) that helps you track your references of the base's files from notes in another folder (the so-called *time axis* folder), e.g., daily notes, session logs, journal entries, etc.
+An Obsidian [Bases](https://help.obsidian.md/bases) plugin that helps you track your references of the base's files from notes in another folder (the so-called *time axis* folder), e.g., daily notes, session logs, journal entries, etc.
 
 ## Motivation
 
