@@ -14,6 +14,13 @@ I created the plugin to have an easy and quick way to see what has happened to a
 ##### Compact Mode
 ![Compact View](examples/compact-view.png)
 
+## Installation
+
+- In your vault's `.obsidian` folder, create the `plugins` folder, if it does not yet exist
+- Create the `reference-matrix-base-view` folder in `.obsidian/plugins`
+- Copy `main.js`, `styles.css` and `manifest.json` into `.obsidian/plugins/reference-matrix-base-view`
+- Activate `Reference Matrix` plugin in Obsidian > Settings > Community Plugins
+
 ## Setup
 
 1. Create or open a `.base` file.
