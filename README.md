@@ -39,3 +39,7 @@ Exception: Links in frontmatter properties are not shown.
 ## Requirements
 
 Obsidian 1.10 or later, with the Bases core plugin enabled.
+
+## AI usage
+
+Used Claude Code to support development.
