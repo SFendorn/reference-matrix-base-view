@@ -4,9 +4,11 @@
 # npm
 node_modules
 
-# Don't include the compiled main.js file in the repo.
-# They should be uploaded to GitHub releases instead.
+# Don't include the build output in the repo.
+# It should be uploaded to GitHub releases instead.
+# The css source is src/styles.css.
 main.js
+styles.css
 
 # Exclude sourcemaps
 *.map
