@@ -2,17 +2,17 @@
 
 An Obsidian [Bases](https://help.obsidian.md/bases) plugin that helps you track your references of the base's files from notes in another folder (the so-called *time axis* folder), e.g., daily notes, session logs, journal entries, etc.
 
-![Regular View](examples/regular-view.png)
-Regular View
-
-![Compact View](examples/compact-view.png)
-Compact Mode
-
 ## Motivation
 
 I maintain a long running Pen & Paper session as a game master, where we create the world as we play, so lots and lots of information to keep track of. I maintain an obsidian vault with all the information about the world, as well as session logs, where I keep track of what has happened during a session.
 
 I created the plugin to have an easy and quick way to see what has happened to a character, an item or a place after several sessions of play.
+
+##### Regular View
+![Regular View](examples/regular-view.png)
+
+##### Compact Mode
+![Compact View](examples/compact-view.png)
 
 ## Setup
 
