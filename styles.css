@@ -1,19 +1,26 @@
 /* Reference Matrix — globally aligned sparse matrix.
 
-   DOM contract (see src/ui/MatrixBaseReactView.tsx):
+   DOM contract. The container comes from src/ui/MatrixBaseView.ts, everything
+   inside it from src/ui/MatrixBaseReactView.tsx:
 
-     div.reference-matrix
-       div.reference-matrix-header
-         div.reference-matrix-corner
-         div.reference-matrix-column
-           a.reference-matrix-column-title       column header (base note)
-       div.reference-matrix-row
-         a.reference-matrix-row-title            row header (time axis note)
-         div.reference-matrix-slot               one per column, always
-           div.reference-matrix-lead[.is-linked]     line above the cell
-           div.reference-matrix-cell                 only where there is data
-             div.reference-matrix-match              the matching lines
-           div.reference-matrix-trail[.is-linked]    line below the cell
+     div.refernce-matrix-view-container          the scroll container
+       div.reference-matrix
+         div.reference-matrix-header
+           div.reference-matrix-corner
+           div.reference-matrix-column
+             a.reference-matrix-column-title     column header (base note)
+         div.reference-matrix-row
+           a.reference-matrix-row-title          row header (time axis note)
+           div.reference-matrix-slot             one per column, always
+             div.reference-matrix-lead[.is-linked]   line above the cell
+             div.reference-matrix-cell               only where there is data
+               div.reference-matrix-match            one per matching line
+             div.reference-matrix-trail[.is-linked]  line below the cell
+
+   A match is filled in by Obsidian, not by the component, so it holds
+   block-level markdown — p, ul, ol — whose links carry .internal-link. The
+   .is-unresolved class on those is added by the component: MarkdownRenderer
+   omits it outside a reading view.
 
    Compact mode (div.reference-matrix.is-compact) drops the row axis: no corner,
    no row title, and a single row whose slots stack every cell of their column,
@@ -34,14 +41,15 @@
 
    Sparseness: a slot is a column-direction flex box holding a lead spacer, an
    optional cell, and a trailing filler. The cell sizes to its own content; the
-   trail takes whatever row height is left over. Lead and trail are 2px wide and
-   centered, so with `.is-linked` they *are* the connector line — the line
-   therefore appears exactly where the cell is not: above it, below it, or
-   straight through an empty slot. The component links every half from under the
-   column header down to the column's last reference, so the line starts flush
-   with the header and stops at the bottommost cell.
+   trail takes whatever row height is left over. Lead and trail are as wide as
+   --rm-line-width and centered, so with `.is-linked` they *are* the connector
+   line — the line therefore appears exactly where the cell is not: above it,
+   below it, or straight through an empty slot. The component links every half
+   from under the column header down to the column's last reference, so the line
+   starts flush with the header and stops at the bottommost cell.
 
-   Nothing draws a frame around the matrix itself, so no data renders nothing. */
+   An empty matrix needs no handling here: the component renders nothing at all
+   when no base file is referenced, and no rule draws a frame. */
 
 .refernce-matrix-view-container {
 	height: 100%;
@@ -164,9 +172,6 @@
 /* Rows carry no separator and no padding of their own: the connector lines have
    to reach the row edges to join up across rows. Vertical rhythm comes from the
    slot's lead spacer instead. */
-.reference-matrix-row {
-	position: relative;
-}
 
 .reference-matrix-slot {
 	display: flex;
@@ -273,12 +278,4 @@
    slots hug their content instead of stretching to the tallest column. */
 .reference-matrix.is-compact .reference-matrix-row {
 	align-items: flex-start;
-}
-
-/* ── Empty states: collapse instead of drawing empty boxes ────────────── */
-
-.reference-matrix:empty,
-.reference-matrix:not(:has(.reference-matrix-cell)),
-.reference-matrix-row:not(:has(.reference-matrix-cell)) {
-	display: none;
 }
